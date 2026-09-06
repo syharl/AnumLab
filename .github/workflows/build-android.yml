@@ -63,11 +63,9 @@ jobs:
           echo "    implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1'" >> android/app/build.gradle
           echo "}" >> android/app/build.gradle
 
-      - name: Siapkan keystore dari secret & tambahkan signing config
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      - name: Siapkan keystore & tambahkan signing config
         run: |
-          echo "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > android/app/anumlab-keystore.jks
+          cp signing/anumlab-keystore.jks android/app/anumlab-keystore.jks
           cat >> android/app/build.gradle << 'EOF'
 
           android {
@@ -151,10 +149,11 @@ jobs:
 
 # CATATAN PENTING:
 # 1. Workflow ini sekarang build versi RELEASE (signed pakai keystore tetap
-#    dari secret ANDROID_KEYSTORE_BASE64 dkk). WAJIB jalankan
-#    generate-keystore.yml dulu (sekali saja) dan simpan 4 secret-nya
-#    di Settings -> Secrets and variables -> Actions sebelum workflow
-#    ini bisa berhasil build.
+#    di folder signing/anumlab-keystore.jks, yang dibuat sekali lewat
+#    generate-keystore.yml dan otomatis ter-commit ke repo). Cuma butuh
+#    2 secret (ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD) + 1 alias
+#    tetap "anumlab" - WAJIB jalankan generate-keystore.yml dulu (sekali
+#    saja) sebelum workflow ini bisa berhasil build.
 # 2. Dependency FFmpeg pakai fork komunitas "ffmpeg-kit-16kb" karena
 #    FFmpegKit versi asli (arthenica) sudah dihentikan & dihapus dari
 #    Maven Central sejak awal 2025. Fork ini pakai nama package Java
