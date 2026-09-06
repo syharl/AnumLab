@@ -40,6 +40,22 @@ jobs:
           sed -i "s/minSdkVersion = [0-9]*/minSdkVersion = 24/" android/variables.gradle
           cat android/variables.gradle
 
+      - name: Naikkan compileSdk/targetSdk ke 35 + AGP & Gradle yang kompatibel
+        run: |
+          sed -i "s/compileSdkVersion = [0-9]*/compileSdkVersion = 35/" android/variables.gradle
+          sed -i "s/targetSdkVersion = [0-9]*/targetSdkVersion = 35/" android/variables.gradle
+          sed -i -E "s/com\.android\.tools\.build:gradle:[0-9.]+/com.android.tools.build:gradle:8.7.2/" android/build.gradle
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-all.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+          cat android/variables.gradle
+          cat android/build.gradle
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Tambahkan dependency FFmpeg ke build.gradle
         run: |
           echo "" >> android/app/build.gradle
