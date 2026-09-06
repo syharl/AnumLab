@@ -1,0 +1,6 @@
+{
+  "appId": "com.syharl.anumlab",
+  "appName": "AnumLab",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

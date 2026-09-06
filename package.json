@@ -1,0 +1,15 @@
+{
+  "name": "anumlab",
+  "version": "0.1.0",
+  "description": "AnumLab - aplikasi otomatisasi pembuatan konten video pendek",
+  "scripts": {
+    "build": "echo 'Belum ada proses build khusus, index.html di folder www dipakai langsung'"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/android": "^6.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0"
+  }
+}
