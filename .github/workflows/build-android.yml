@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -56,6 +59,52 @@ jobs:
           name: anumlab-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Hitung nomor versi (format tahunKe.bulan.tanggal.jamMenit)
+        id: versi
+        run: |
+          # TAHUN_MULAI = tahun pertama project ini dimulai.
+          # Ganti angka ini cuma sekali kalau ternyata salah,
+          # jangan diubah-ubah lagi setelahnya.
+          TAHUN_MULAI=2026
+          TAHUN_KE=$(( $(TZ='Asia/Jakarta' date +%Y) - TAHUN_MULAI + 1 ))
+          BULAN=$(TZ='Asia/Jakarta' date +%-m)
+          TANGGAL=$(TZ='Asia/Jakarta' date +%-d)
+          JAM_MENIT=$(TZ='Asia/Jakarta' date +%H%M)
+          VERSI="${TAHUN_KE}.${BULAN}.${TANGGAL}.${JAM_MENIT}"
+          echo "versi=$VERSI" >> "$GITHUB_OUTPUT"
+          echo "Nomor versi build ini: $VERSI"
+
+      - name: Bungkus folder www jadi web-bundle.zip (untuk hot update)
+        run: |
+          cd www
+          zip -r ../web-bundle.zip .
+          cd ..
+
+      - name: Rename APK sesuai nomor versi
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk anumlab-${{ steps.versi.outputs.versi }}.apk
+
+      - name: Buat GitHub Release otomatis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.versi.outputs.versi }}" \
+            anumlab-${{ steps.versi.outputs.versi }}.apk \
+            web-bundle.zip \
+            --title "AnumLab ${{ steps.versi.outputs.versi }}" \
+            --notes "Build otomatis dari commit ${{ github.sha }}"
+
+      - name: Hapus release lama, simpan maksimal 3 terbaru
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,createdAt \
+            --jq 'sort_by(.createdAt) | reverse | .[3:] | .[].tagName' \
+          | while read -r tag; do
+              echo "Menghapus release lama: $tag"
+              gh release delete "$tag" --yes --cleanup-tag
+            done
+
 # CATATAN PENTING:
 # 1. Workflow ini baru build versi DEBUG (belum signed).
 #    Bagian signing (keystore, dsb) perlu digabung dari workflow
@@ -66,3 +115,16 @@ jobs:
 #    yang sama (com.arthenica.ffmpegkit) jadi kode pemanggilannya tidak
 #    berubah - tapi tetap perlu dites langsung karena bukan dari
 #    penulis aslinya.
+# 3. Format versi: tahunKe.bulan.tanggal.jamMenit (WIB), contoh 1.9.6.2030.
+#    "tahunKe" dihitung dari TAHUN_MULAI=2026 (tahun 1). Kalau tahun
+#    project berjalan lewat 2027, otomatis jadi tahunKe=2, dst - tidak
+#    perlu diubah manual.
+# 4. Tiap build otomatis bikin 1 GitHub Release baru berisi APK +
+#    web-bundle.zip, dan release yang lebih lama dari 3 terbaru otomatis
+#    dihapus botnya sendiri (lewat gh release delete).
+# 5. Aplikasi (lewat www/update-check.js) baca release TERBARU ini untuk
+#    cek update: kalau cuma web-bundle.zip yang beda -> hot update
+#    otomatis tanpa install ulang. Kalau butuh native baru, tandai di
+#    kotak "Notes" saat edit release manual dengan baris: MIN_NATIVE: 2
+#    (angka lebih besar dari NATIVE_BUILD di update-check.js) supaya
+#    aplikasi lama menampilkan popup minta update APK penuh.
