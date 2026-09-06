@@ -32,6 +32,11 @@ jobs:
       - name: Sinkronkan plugin ke Android
         run: npx cap sync android
 
+      - name: Naikkan minSdkVersion ke 24 (dibutuhkan library FFmpeg)
+        run: |
+          sed -i "s/minSdkVersion = [0-9]*/minSdkVersion = 24/" android/variables.gradle
+          cat android/variables.gradle
+
       - name: Tambahkan dependency FFmpeg ke build.gradle
         run: |
           echo "" >> android/app/build.gradle
