@@ -35,6 +35,26 @@ jobs:
       - name: Sinkronkan plugin ke Android
         run: npx cap sync android
 
+      - name: Pasang native plugin FFmpeg (FfmpegPlugin.java) & daftarkan di MainActivity
+        run: |
+          mkdir -p android/app/src/main/java/com/syharl/anumlab
+          cp native-android/FfmpegPlugin.java android/app/src/main/java/com/syharl/anumlab/FfmpegPlugin.java
+          cat > android/app/src/main/java/com/syharl/anumlab/MainActivity.java << 'EOF'
+          package com.syharl.anumlab;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(FfmpegPlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          EOF
+          cat android/app/src/main/java/com/syharl/anumlab/MainActivity.java
+
       - name: Naikkan minSdkVersion ke 24 (dibutuhkan library FFmpeg)
         run: |
           sed -i "s/minSdkVersion = [0-9]*/minSdkVersion = 24/" android/variables.gradle
