@@ -26,6 +26,21 @@ jobs:
             -alias anumlab \
             -storepass "$ANDROID_KEYSTORE_PASSWORD"
 
+      - name: Hitung nomor versi (format tahunKe.bulan.tanggal.jamMenit)
+        id: versi
+        run: |
+          # TAHUN_MULAI = tahun pertama project ini dimulai.
+          # Ganti angka ini cuma sekali kalau ternyata salah,
+          # jangan diubah-ubah lagi setelahnya.
+          TAHUN_MULAI=2026
+          TAHUN_KE=$(( $(TZ='Asia/Jakarta' date +%Y) - TAHUN_MULAI + 1 ))
+          BULAN=$(TZ='Asia/Jakarta' date +%-m)
+          TANGGAL=$(TZ='Asia/Jakarta' date +%-d)
+          JAM_MENIT=$(TZ='Asia/Jakarta' date +%H%M)
+          VERSI="${TAHUN_KE}.${BULAN}.${TANGGAL}.${JAM_MENIT}"
+          echo "versi=$VERSI" >> "$GITHUB_OUTPUT"
+          echo "Nomor versi build ini: $VERSI"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -94,6 +109,12 @@ jobs:
           echo "    implementation 'com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1'" >> android/app/build.gradle
           echo "}" >> android/app/build.gradle
 
+      - name: Tanam nomor versi ke dalam APK (versionCode & versionName)
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"${{ steps.versi.outputs.versi }}\"/" android/app/build.gradle
+          grep -A2 "versionCode" android/app/build.gradle
+
       - name: Siapkan keystore & tambahkan signing config
         run: |
           cp signing/anumlab-keystore.jks android/app/anumlab-keystore.jks
@@ -130,21 +151,6 @@ jobs:
           name: anumlab-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
 
-      - name: Hitung nomor versi (format tahunKe.bulan.tanggal.jamMenit)
-        id: versi
-        run: |
-          # TAHUN_MULAI = tahun pertama project ini dimulai.
-          # Ganti angka ini cuma sekali kalau ternyata salah,
-          # jangan diubah-ubah lagi setelahnya.
-          TAHUN_MULAI=2026
-          TAHUN_KE=$(( $(TZ='Asia/Jakarta' date +%Y) - TAHUN_MULAI + 1 ))
-          BULAN=$(TZ='Asia/Jakarta' date +%-m)
-          TANGGAL=$(TZ='Asia/Jakarta' date +%-d)
-          JAM_MENIT=$(TZ='Asia/Jakarta' date +%H%M)
-          VERSI="${TAHUN_KE}.${BULAN}.${TANGGAL}.${JAM_MENIT}"
-          echo "versi=$VERSI" >> "$GITHUB_OUTPUT"
-          echo "Nomor versi build ini: $VERSI"
-
       - name: Bungkus folder www jadi web-bundle.zip (untuk hot update)
         run: |
           cd www
@@ -180,9 +186,10 @@ jobs:
 # 1. Workflow ini sekarang build versi RELEASE (signed pakai keystore tetap
 #    di folder signing/anumlab-keystore.jks, yang dibuat sekali lewat
 #    generate-keystore.yml dan otomatis ter-commit ke repo). Cuma butuh
-#    2 secret (ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD) + 1 alias
-#    tetap "anumlab" - WAJIB jalankan generate-keystore.yml dulu (sekali
-#    saja) sebelum workflow ini bisa berhasil build.
+#    1 secret (ANDROID_KEYSTORE_PASSWORD) - alias tetap "anumlab" dan
+#    keyPassword sama dengan storePassword (batasan format PKCS12) -
+#    WAJIB jalankan generate-keystore.yml dulu (sekali saja) sebelum
+#    workflow ini bisa berhasil build.
 # 2. Dependency FFmpeg pakai fork komunitas "ffmpeg-kit-16kb" karena
 #    FFmpegKit versi asli (arthenica) sudah dihentikan & dihapus dari
 #    Maven Central sejak awal 2025. Fork ini pakai nama package Java
