@@ -43,18 +43,36 @@
   <div id="status">Belum ada tes dijalankan.</div>
 
   <script>
-    // CATATAN: Ini baru kerangka UI.
-    // Fungsi testFfmpeg() di bawah akan diisi setelah
-    // native bridge (Capacitor Plugin Java) untuk FFmpeg dibuat.
     document.getElementById('testBtn').addEventListener('click', async () => {
       const statusEl = document.getElementById('status');
-      statusEl.innerText = 'Menjalankan tes... (bridge FFmpeg belum terpasang)';
+      try {
+        const { Ffmpeg } = window.Capacitor.Plugins;
 
-      // Placeholder - akan diganti dengan panggilan plugin FFmpeg asli
-      // Contoh nanti kira-kira:
-      // const result = await AnumFfmpeg.run({ command: '-i foto.jpg -i video.mp4 ...' });
+        statusEl.innerText = 'Menyalin file contoh...';
+        const foto = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-foto.jpg' });
+        const video = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-video.mp4' });
+        const cacheDir = await Ffmpeg.getCacheDir();
+        const outputPath = cacheDir.path + '/hasil-test.mp4';
 
-      statusEl.innerText = 'UI siap. Lanjut pasang native bridge FFmpeg di langkah berikutnya.';
+        statusEl.innerText = 'Menjalankan FFmpeg (gabung foto + video)...';
+
+        // Foto jadi background, video ditaruh sebagai overlay kecil
+        // di pojok kanan bawah, mengikuti durasi video
+        const command =
+          `-y -loop 1 -i "${foto.path}" -i "${video.path}" ` +
+          `-filter_complex "[1:v]scale=iw*0.5:-1[ov];[0:v][ov]overlay=W-w-20:H-h-20:shortest=1" ` +
+          `-c:v mpeg4 -pix_fmt yuv420p "${outputPath}"`;
+
+        const hasil = await Ffmpeg.run({ command });
+
+        if (hasil.success) {
+          statusEl.innerText = 'Berhasil! Hasil tersimpan di: ' + outputPath;
+        } else {
+          statusEl.innerText = 'FFmpeg gagal, cek log.';
+        }
+      } catch (e) {
+        statusEl.innerText = 'Error: ' + (e.message || JSON.stringify(e));
+      }
     });
   </script>
   <script src="update-check.js"></script>
