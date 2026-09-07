@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AnumLab</title>
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
     body {
       background: #111;
       color: #eee;
@@ -13,10 +18,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: 0;
-      text-align: center;
       padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
     }
     button {
       background: #34c759;
@@ -49,6 +53,15 @@
       background: #34c759;
       transition: width 0.2s ease;
     }
+    #updateDebug {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -57,6 +70,7 @@
   <button id="testBtn">Test Gabung Video</button>
   <div id="progressWrap"><div id="progressBar"></div></div>
   <div id="status">Belum ada tes dijalankan.</div>
+  <div id="updateDebug"></div>
 
   <script>
     document.getElementById('testBtn').addEventListener('click', async () => {
