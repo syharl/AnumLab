@@ -17,9 +17,13 @@ const REPO = 'syharl/AnumLab';
 const NATIVE_BUILD = 1;
 
 async function cekUpdate() {
+  tampilkanDebug('Mengecek update...');
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      tampilkanDebug('Cek update gagal: server balas status ' + res.status);
+      return;
+    }
     const data = await res.json();
 
     const versiTerbaru = data.tag_name;
@@ -30,32 +34,42 @@ async function cekUpdate() {
     const minNative = match ? parseInt(match[1], 10) : 0;
 
     if (minNative > NATIVE_BUILD) {
+      tampilkanDebug('Rilis terbaru: ' + versiTerbaru + ' (butuh update APK penuh)');
       const apkAsset = (data.assets || []).find(a => a.name.endsWith('.apk'));
       tampilkanPopupUpdatePenuh(versiTerbaru, apkAsset ? apkAsset.browser_download_url : data.html_url);
       return;
     }
 
     if (versiTerbaru && versiTerbaru !== versiWebTersimpan) {
+      tampilkanDebug('Rilis terbaru: ' + versiTerbaru + ' (tersimpan: ' + (versiWebTersimpan || '-') + '), memasang hot update...');
       const bundleAsset = (data.assets || []).find(a => a.name === 'web-bundle.zip');
       if (bundleAsset) {
         await terapkanHotUpdate(bundleAsset.browser_download_url, versiTerbaru);
+      } else {
+        tampilkanDebug('Rilis terbaru tidak punya web-bundle.zip');
       }
+    } else {
+      tampilkanDebug('Sudah versi terbaru (' + versiTerbaru + ')');
     }
   } catch (e) {
-    console.log('Cek update gagal (biasanya karena tidak ada koneksi):', e);
+    tampilkanDebug('Cek update error: ' + (e.message || e));
   }
 }
 
 async function terapkanHotUpdate(url, versiBaru) {
   try {
     const { CapacitorUpdater } = window.Capacitor.Plugins;
+    if (!CapacitorUpdater) {
+      tampilkanDebug('Plugin CapacitorUpdater tidak ditemukan');
+      return;
+    }
     tampilkanStatus('Ada pembaruan ringan, memasang...');
     const info = await CapacitorUpdater.download({ url, version: versiBaru });
     localStorage.setItem('anumlab_versi_web', versiBaru);
     await CapacitorUpdater.set(info);
     // set() akan reload aplikasi otomatis ke versi baru
   } catch (e) {
-    console.log('Hot update gagal:', e);
+    tampilkanDebug('Hot update gagal: ' + (e.message || e));
   }
 }
 
@@ -70,6 +84,11 @@ function tampilkanPopupUpdatePenuh(versi, url) {
 
 function tampilkanStatus(pesan) {
   const el = document.getElementById('status');
+  if (el) el.innerText = pesan;
+}
+
+function tampilkanDebug(pesan) {
+  const el = document.getElementById('updateDebug');
   if (el) el.innerText = pesan;
 }
 
