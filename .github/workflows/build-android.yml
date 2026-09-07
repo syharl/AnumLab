@@ -15,17 +15,28 @@ jobs:
       - name: Checkout kode
         uses: actions/checkout@v4
 
-      - name: Cek cepat apakah password keystore cocok (sebelum build lama dimulai)
+      - name: Cek cepat apakah password keystore & key cocok (sebelum build lama dimulai)
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "Waktu commit terakhir file keystore:"
           git log -1 --format="%ai" -- signing/anumlab-keystore.jks
-          keytool -list -v \
+
+          echo "--- Tes 1: buka keystore pakai ANDROID_KEYSTORE_PASSWORD ---"
+          keytool -list \
             -keystore signing/anumlab-keystore.jks \
-            -alias anumlab \
             -storepass "$ANDROID_KEYSTORE_PASSWORD"
+
+          echo "--- Tes 2: buka KEY di dalamnya pakai ANDROID_KEY_PASSWORD ---"
+          cp signing/anumlab-keystore.jks /tmp/tes-keystore.jks
+          keytool -keypasswd \
+            -alias anumlab \
+            -keystore /tmp/tes-keystore.jks \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -keypass "$ANDROID_KEY_PASSWORD" \
+            -new "$ANDROID_KEY_PASSWORD"
+          echo "Tes 2 LOLOS - ANDROID_KEY_PASSWORD benar"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
