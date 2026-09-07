@@ -49,7 +49,7 @@
         const { Ffmpeg } = window.Capacitor.Plugins;
 
         statusEl.innerText = 'Menyalin file contoh...';
-        const foto = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-foto.jpg' });
+        const foto = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-foto.jpeg' });
         const video = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-video.mp4' });
         const cacheDir = await Ffmpeg.getCacheDir();
         const outputPath = cacheDir.path + '/hasil-test.mp4';
