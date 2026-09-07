@@ -36,7 +36,7 @@ public class FfmpegPlugin extends Plugin {
         if (ReturnCode.isSuccess(session.getReturnCode())) {
             call.resolve(result);
         } else {
-            call.reject("FFmpeg gagal menjalankan perintah", null, result);
+            call.reject("FFmpeg gagal menjalankan perintah", (String) null, result);
         }
     }
 
