@@ -64,7 +64,7 @@ public class FfmpegPlugin extends Plugin {
             // tempat kalau nanti perlu log baris-per-baris untuk debug
         }, statistics -> {
             JSObject progress = new JSObject();
-            long timeMs = statistics.getTime();
+            double timeMs = statistics.getTime();
             double percent = 0;
             if (totalDurationMs[0] > 0) {
                 percent = Math.min(100.0, (timeMs / (double) totalDurationMs[0]) * 100.0);
