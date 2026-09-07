@@ -34,27 +34,54 @@
       color: #aaa;
       max-width: 300px;
     }
+    #progressWrap {
+      width: 260px;
+      height: 8px;
+      background: #333;
+      border-radius: 999px;
+      margin-top: 16px;
+      overflow: hidden;
+      display: none;
+    }
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: #34c759;
+      transition: width 0.2s ease;
+    }
   </style>
 </head>
 <body>
   <h1>AnumLab</h1>
   <p>Tahap 1: Tes fondasi FFmpeg</p>
   <button id="testBtn">Test Gabung Video</button>
+  <div id="progressWrap"><div id="progressBar"></div></div>
   <div id="status">Belum ada tes dijalankan.</div>
 
   <script>
     document.getElementById('testBtn').addEventListener('click', async () => {
       const statusEl = document.getElementById('status');
+      const progressWrap = document.getElementById('progressWrap');
+      const progressBar = document.getElementById('progressBar');
+      let listener;
+
       try {
         const { Ffmpeg } = window.Capacitor.Plugins;
 
+        listener = await Ffmpeg.addListener('progress', (data) => {
+          const pct = Math.round(data.percent || 0);
+          progressBar.style.width = pct + '%';
+          statusEl.innerText = `Memproses... ${pct}%`;
+        });
+
+        progressWrap.style.display = 'block';
+        progressBar.style.width = '0%';
         statusEl.innerText = 'Menyalin file contoh...';
+
         const foto = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-foto.jpeg' });
         const video = await Ffmpeg.copyAssetToCache({ fileName: 'assets/test-video.mp4' });
         const cacheDir = await Ffmpeg.getCacheDir();
         const outputPath = cacheDir.path + '/hasil-test.mp4';
-
-        statusEl.innerText = 'Menjalankan FFmpeg (gabung foto + video)...';
 
         // Foto jadi background, video ditaruh sebagai overlay kecil
         // di pojok kanan bawah, mengikuti durasi video
@@ -63,15 +90,20 @@
           `-filter_complex "[1:v]scale=iw*0.5:-1[ov];[0:v][ov]overlay=W-w-20:H-h-20:shortest=1" ` +
           `-c:v mpeg4 -pix_fmt yuv420p "${outputPath}"`;
 
-        const hasil = await Ffmpeg.run({ command });
+        const hasil = await Ffmpeg.run({ command, durationSourcePath: video.path });
 
         if (hasil.success) {
-          statusEl.innerText = 'Berhasil! Hasil tersimpan di: ' + outputPath;
+          statusEl.innerText = 'Menyimpan ke galeri...';
+          await Ffmpeg.saveToGallery({ sourcePath: outputPath, fileName: 'AnumLab-test.mp4' });
+          progressBar.style.width = '100%';
+          statusEl.innerText = 'Berhasil! Cek folder Movies/AnumLab di Galeri/Files HP kamu.';
         } else {
           statusEl.innerText = 'FFmpeg gagal, cek log.';
         }
       } catch (e) {
         statusEl.innerText = 'Error: ' + (e.message || JSON.stringify(e));
+      } finally {
+        if (listener) await listener.remove();
       }
     });
   </script>
